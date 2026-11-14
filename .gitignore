@@ -1,0 +1,36 @@
+# --- Secrets: never commit these ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+aws-credentials*
+kubeconfig*
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# --- Airflow (created when running locally) ---
+logs/
+airflow.db
+airflow.cfg
+standalone_admin_password.txt
+deploy/logs/
+deploy/plugins/
+
+# --- Frontend ---
+node_modules/
+frontend/dist/
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
