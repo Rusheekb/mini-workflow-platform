@@ -13,6 +13,5 @@ Full docs (architecture diagram, setup, AWS mapping) arrive in milestone M8.
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt \
-  --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.12.txt
+pip install -r requirements.txt   # applies Airflow's constraints file automatically
 ```

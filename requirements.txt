@@ -1,10 +1,10 @@
-# Install with Airflow's constraints file so every version matches what Airflow 3.3.2 was tested with:
+# Install with:  pip install -r requirements.txt
 #
-#   pip install -r requirements.txt \
-#     --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.12.txt
-#
+# The -c line below applies Airflow's constraints file automatically, so every version matches what
+# Airflow 3.3.2 was tested with on Python 3.12. Nobody can forget the flag.
 # Packages listed in the constraints file are pinned there (e.g. fastapi 0.136.3, pydantic 2.13.5).
 # Packages NOT in it (pytest, ruff) are pinned here.
+-c https://raw.githubusercontent.com/apache/airflow/constraints-3.3.2/constraints-3.12.txt
 
 # Airflow core + providers we use (KubernetesPodOperator, AWS hooks, BashOperator)
 apache-airflow==3.3.2
