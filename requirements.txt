@@ -17,6 +17,7 @@ fastapi
 uvicorn
 pydantic
 PyYAML
+croniter
 httpx
 
 # Task scripts

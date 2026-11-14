@@ -1,0 +1,12 @@
+# Several independent problems -- the validator must report ALL of them, not just the first.
+workflow_name: messy_workflow
+schedule: "every day"
+owner: rusheek
+tasks:
+  - id: extract
+    image: mwp-tasks:latest
+    command: ["python", "extract.py"]
+    memory_limit: 512MB
+  - id: extract
+    image: mwp-tasks
+    command: ["python", "transform.py"]

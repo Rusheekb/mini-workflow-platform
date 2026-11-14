@@ -1,0 +1,12 @@
+# "depend_on" is a typo for "depends_on". Without extra="forbid" this would be silently ignored.
+workflow_name: typo_workflow
+schedule: "@daily"
+owner: rusheek
+tasks:
+  - id: extract
+    image: mwp-tasks:0.1.0
+    command: ["python", "extract.py"]
+  - id: transform
+    image: mwp-tasks:0.1.0
+    command: ["python", "transform.py"]
+    depend_on: [extract]

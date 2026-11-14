@@ -1,0 +1,17 @@
+# extract -> transform -> load -> extract: Airflow can never decide what runs first.
+workflow_name: cyclic_workflow
+schedule: "@daily"
+owner: rusheek
+tasks:
+  - id: extract
+    image: mwp-tasks:0.1.0
+    command: ["python", "extract.py"]
+    depends_on: [load]
+  - id: transform
+    image: mwp-tasks:0.1.0
+    command: ["python", "transform.py"]
+    depends_on: [extract]
+  - id: load
+    image: mwp-tasks:0.1.0
+    command: ["python", "load.py"]
+    depends_on: [transform]

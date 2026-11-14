@@ -1,0 +1,12 @@
+# transform depends on "extrct" (typo) which doesn't exist.
+workflow_name: unknown_dep_workflow
+schedule: "@daily"
+owner: rusheek
+tasks:
+  - id: extract
+    image: mwp-tasks:0.1.0
+    command: ["python", "extract.py"]
+  - id: transform
+    image: mwp-tasks:0.1.0
+    command: ["python", "transform.py"]
+    depends_on: [extrct]

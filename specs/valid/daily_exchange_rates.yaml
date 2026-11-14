@@ -1,0 +1,19 @@
+workflow_name: daily_exchange_rates
+schedule: "@daily"
+owner: rusheek
+retries: 3
+retry_delay_minutes: 5
+tags: [finance, example]
+tasks:
+  - id: extract
+    image: mwp-tasks:0.1.0
+    command: ["python", "extract.py"]
+    memory_limit: 512Mi
+  - id: transform
+    image: mwp-tasks:0.1.0
+    command: ["python", "transform.py"]
+    depends_on: [extract]
+  - id: load
+    image: mwp-tasks:0.1.0
+    command: ["python", "load.py"]
+    depends_on: [transform]

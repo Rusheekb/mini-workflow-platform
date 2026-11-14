@@ -1,0 +1,13 @@
+[project]
+name = "mini-workflow-platform"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+
+[tool.pytest.ini_options]
+# Lets tests do `from backend.validator import ...` from the repo root.
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
