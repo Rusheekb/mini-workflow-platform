@@ -4,7 +4,7 @@ import json
 
 import requests
 
-from common import get_logger, run_date, write_text
+from common import SECRET_NAME, get_logger, get_secret, run_date, write_text
 
 log = get_logger("extract")
 
@@ -16,9 +16,22 @@ TIMEOUT_SECONDS = 10  # never call the network without a timeout, or a hung API 
 def main() -> None:
     day = run_date()
     url = API_URL.format(day=day)
+
+    if SECRET_NAME and SECRET_NAME != "replace-me":
+        # The pattern for a paid vendor API: fetch the key at run time from Secrets Manager and log THAT
+        # we loaded it, never its value. A real vendor would get it as a header, e.g.
+        # headers={"X-Api-Key": api_key}. We don't send it here: this free API needs no key, and a
+        # credential should only ever go to the service it belongs to.
+        api_key = get_secret(SECRET_NAME)
+        log.info("loaded vendor API key from Secrets Manager (%s, %d chars)", SECRET_NAME, len(api_key))
+
     log.info("fetching %s", url)
     try:
-        response = requests.get(url, params={"base": "USD", "symbols": CURRENCIES}, timeout=TIMEOUT_SECONDS)
+        response = requests.get(
+            url,
+            params={"base": "USD", "symbols": CURRENCIES},
+            timeout=TIMEOUT_SECONDS,
+        )
         response.raise_for_status()  # turn 4xx/5xx into an exception instead of parsing an error page
         payload = response.json()
     except requests.RequestException as exc:  # specific: network errors, timeouts, HTTP errors, bad JSON
