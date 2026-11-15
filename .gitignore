@@ -31,6 +31,10 @@ data/
 node_modules/
 frontend/dist/
 
+# --- Private notes (not for the public repo) ---
+CLAUDE.md
+LEARNING.md
+
 # --- OS / editor ---
 .DS_Store
 .idea/
