@@ -1,0 +1,18 @@
+workflow_name: weekly_fx_report
+schedule: "0 6 * * 1"
+owner: rusheek
+retries: 2
+tags: [finance, demo]
+tasks:
+  - id: extract
+    image: mwp-tasks:0.1.0
+    command: ["python", "extract.py"]
+    memory_limit: 512Mi
+  - id: transform
+    image: mwp-tasks:0.1.0
+    command: ["python", "transform.py"]
+    depends_on: [extract]
+  - id: load
+    image: mwp-tasks:0.1.0
+    command: ["python", "load.py"]
+    depends_on: [transform]
