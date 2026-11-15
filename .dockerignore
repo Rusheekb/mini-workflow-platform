@@ -1,0 +1,10 @@
+# Keep the Docker build context small, and NEVER send secrets into an image.
+.env
+.env.*
+.git
+.venv
+**/node_modules
+**/__pycache__
+data
+deploy/logs
+frontend

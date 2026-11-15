@@ -1,0 +1,5 @@
+# Task image dependencies. Same versions as Airflow 3.3.2's constraints file, pinned exactly so every
+# build of mwp-tasks:<tag> is identical.
+requests==2.34.2
+pandas==3.0.5
+boto3==1.43.75

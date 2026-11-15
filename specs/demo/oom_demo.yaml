@@ -1,0 +1,13 @@
+# Deliberately allocates ~300 MB inside a pod limited to 64Mi, so Kubernetes kills it: OOMKilled (exit 137).
+# Used in the Kubernetes milestone to practice `kubectl describe pod`.
+workflow_name: oom_demo
+schedule: "@once"
+owner: rusheek
+retries: 1
+retry_delay_minutes: 1
+tags: [demo]
+tasks:
+  - id: allocate_too_much
+    image: mwp-tasks:0.1.0
+    command: ["python", "-c", "x = bytearray(300 * 1024 * 1024); print('allocated', len(x))"]
+    memory_limit: 64Mi

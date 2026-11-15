@@ -1,0 +1,54 @@
+# Values for the official Apache Airflow Helm chart 1.22.0, for a laptop kind cluster.
+#   helm install airflow apache-airflow/airflow --version 1.22.0 -n airflow -f deploy/helm-values.yaml
+# Only the settings we change are listed; everything else is the chart default.
+
+# Our image: official apache/airflow:3.3.2-python3.12 + our DAGs baked in (see deploy/airflow.Dockerfile).
+airflowVersion: "3.3.2"
+defaultAirflowTag: "3.3.2"
+images:
+  airflow:
+    repository: mwp-airflow
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent   # loaded into kind with `kind load docker-image`, not pulled from a registry
+
+# KubernetesExecutor: every task instance gets its own short-lived worker pod. No Celery workers sitting idle.
+executor: KubernetesExecutor
+
+# Not needed with the KubernetesExecutor, or not worth the memory on a laptop.
+redis:
+  enabled: false
+flower:
+  enabled: false
+statsd:
+  enabled: false
+pgbouncer:
+  enabled: false
+triggerer:
+  enabled: false   # only needed for deferrable operators
+
+# By default these Jobs are Helm *post-install hooks*: Helm runs them only after the install is "ready".
+# With `helm install --wait` that deadlocks: Airflow pods wait for DB migrations, and the migration Job waits
+# for Helm, which is waiting for the pods. Creating them as normal resources avoids it.
+migrateDatabaseJob:
+  useHelmHooks: false
+createUserJob:
+  useHelmHooks: false
+
+# DAGs are inside the image, so no DAG volume and no git-sync sidecar.
+dags:
+  persistence:
+    enabled: false
+  gitSync:
+    enabled: false
+
+# Fixed secrets so pods don't restart on every `helm upgrade`. LOCAL DEV ONLY: in a real cluster these come from
+# a Kubernetes Secret (or AWS Secrets Manager via External Secrets), never from a values file in git.
+apiSecretKey: local-dev-only-api-secret
+jwtSecret: local-dev-only-jwt-secret
+
+config:
+  dag_processor:
+    refresh_interval: 30
+  kubernetes_executor:
+    delete_worker_pods: "True"
+    delete_worker_pods_on_failure: "False"   # keep failed worker pods so we can `kubectl describe` them

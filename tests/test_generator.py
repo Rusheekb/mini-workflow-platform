@@ -97,6 +97,7 @@ def test_kubernetes_target_sets_image_and_memory(tmp_path, spec):
     assert task.image == "mwp-tasks:0.1.0"
     assert task.cmds == ["python"] and task.arguments == ["extract.py"]
     assert [(e.name, e.value) for e in task.env_vars] == [("RUN_DATE", "{{ ds }}")]
+    assert task.env_from[0].secret_ref.name == "mwp-task-env"
     assert task.container_resources.limits == {"memory": "512Mi"}
     assert task.container_resources.requests == {"memory": "512Mi"}
     assert dag.get_task("transform").container_resources.limits == {"memory": "256Mi"}  # default

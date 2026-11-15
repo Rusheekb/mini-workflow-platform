@@ -100,8 +100,11 @@ class KubernetesTaskRenderer(TaskRenderer):
         "from kubernetes.client import models as k8s",
     )
 
-    def __init__(self, namespace: str = "airflow"):
+    def __init__(self, namespace: str = "airflow", env_secret: str | None = "mwp-task-env"):
         self.namespace = namespace
+        # Pods don't inherit Airflow's environment. Settings like the S3 bucket and (locally) AWS keys come
+        # from this Kubernetes Secret. On EKS the keys would be dropped entirely in favor of IRSA.
+        self.env_secret = env_secret
 
     @staticmethod
     def pod_name(spec: WorkflowSpec, task: TaskSpec) -> str:
@@ -111,7 +114,7 @@ class KubernetesTaskRenderer(TaskRenderer):
 
     def operator_kwargs(self, task: TaskSpec, spec: WorkflowSpec) -> dict[str, str]:
         memory = py({"memory": task.memory_limit})
-        return {
+        kwargs = {
             "name": py(self.pod_name(spec, task)),
             "namespace": py(self.namespace),
             "image": py(task.image),
@@ -125,6 +128,13 @@ class KubernetesTaskRenderer(TaskRenderer):
             # Keep failed pods around so you can `kubectl describe` / `kubectl logs` them.
             "on_finish_action": py("delete_succeeded_pod"),
         }
+        if self.env_secret:
+            # optional=True: the pod still starts if the Secret doesn't exist (tasks fall back to local files).
+            kwargs["env_from"] = (
+                "[k8s.V1EnvFromSource(secret_ref=k8s.V1SecretEnvSource("
+                f"name={py(self.env_secret)}, optional=True))]"
+            )
+        return kwargs
 
 
 RENDERERS: dict[str, type[TaskRenderer]] = {

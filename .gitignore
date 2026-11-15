@@ -39,3 +39,5 @@ LEARNING.md
 .DS_Store
 .idea/
 .vscode/
+# --- Build output ---
+build/

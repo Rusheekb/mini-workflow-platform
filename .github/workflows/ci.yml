@@ -36,7 +36,7 @@ jobs:
       - name: Every committed spec must validate and generate
         run: |
           shopt -s nullglob
-          for spec in specs/valid/*.yaml specs/submitted/*.yaml; do
+          for spec in specs/valid/*.yaml specs/submitted/*.yaml specs/demo/*.yaml; do
             python -m backend.generator "$spec" --out "$RUNNER_TEMP/dags-check"
           done
 

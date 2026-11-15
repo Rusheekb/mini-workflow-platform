@@ -87,8 +87,8 @@ dags/        generated DAG files (Airflow reads this folder)
 specs/       example valid/invalid specs (used by tests) and specs submitted through the API
 tasks/       task scripts (extract/transform/load) + shared storage/secrets helpers
 frontend/    React UI (Vite)
-deploy/      docker-compose for Airflow, AWS IAM policy template
-scripts/     AWS setup / teardown
+deploy/      docker-compose, kind config, Helm values, Airflow image Dockerfile, AWS IAM policy template
+scripts/     AWS setup / teardown, Kubernetes up / down
 tests/       validator, generator, API, task storage, and DAG integrity tests
 ```
 
@@ -128,6 +128,21 @@ docker compose -f deploy/docker-compose.yaml up -d --force-recreate
 ```
 
 Resources are tagged `project=mini-workflow-platform`. Without AWS configured, tasks write to a local `data/` folder.
+
+### Kubernetes: tasks as pods (kind + official Helm chart)
+
+```bash
+docker compose -f deploy/docker-compose.yaml down    # one Airflow at a time on a laptop
+./scripts/k8s_up.sh                                   # kind cluster + images + Helm (KubernetesExecutor)
+kubectl port-forward svc/airflow-api-server 8080:8080 -n airflow   # UI: admin / admin
+./scripts/k8s_down.sh                                 # delete the cluster
+```
+
+`k8s_up.sh` generates the DAGs with `--target kubernetes`, bakes them into a custom Airflow image
+(`deploy/airflow.Dockerfile`), builds the task image (`tasks/Dockerfile`, non-root, pinned dependencies), loads both
+into kind, creates a Kubernetes Secret with only the values task pods need, and installs chart 1.22.0 with
+`deploy/helm-values.yaml`. Each task then runs as its own pod with the spec's memory request/limit;
+`specs/demo/oom_demo.yaml` deliberately exceeds its 64Mi limit to show an `OOMKilled` pod (exit code 137).
 
 ## How this maps to AWS in production
 
