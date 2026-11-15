@@ -1,5 +1,7 @@
 # Shared names for setup_aws.sh and teardown_aws.sh. Sourced, not run directly.
-REGION="us-east-1"
+# The AWS "project" account only allows regional services (S3, Secrets Manager, ECR) in its selected
+# region, which is us-east-2. Override with: AWS_PROJECT_REGION=... ./scripts/setup_aws.sh
+REGION="${AWS_PROJECT_REGION:-us-east-2}"
 TAG_KEY="project"
 TAG_VALUE="mini-workflow-platform"
 

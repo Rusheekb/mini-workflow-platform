@@ -42,5 +42,6 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 echo
-echo "Check nothing is left (should print nothing):"
-echo "  aws resourcegroupstaggingapi get-resources --region ${REGION} --tag-filters Key=${TAG_KEY},Values=${TAG_VALUE} --query 'ResourceTagMappingList[].ResourceARN' --output text"
+echo "Check nothing is left (each should say 'not found' / NoSuchEntity / 404):"
+echo "  aws s3api head-bucket --bucket ${BUCKET}"
+echo "  aws iam get-user --user-name ${IAM_USER}"
