@@ -157,6 +157,24 @@ into kind, creates a Kubernetes Secret with only the values task pods need, and 
 | Task logs in local files | Remote logging to S3 and **CloudWatch** logs, metrics, and alarms on failed runs |
 | GitHub Actions: lint + tests | Same, plus building/pushing images to ECR and deploying via Helm |
 
+## Production roadmap
+
+This is a working slice of a workflow platform, not a production service. These are the next steps, roughly in
+priority order, to make it one:
+
+| Area | Next step | Why |
+|---|---|---|
+| Deploy model | The API opens a pull request to a DAG repository instead of writing files; CI validates and merges deploy via git-sync or an image build | Code review, history, and one-click rollback for every workflow change |
+| Auth and ownership | SSO (OIDC) on the API and UI, per-team roles, and workflow ownership checks on every write | Teams can only change their own workflows; every change has an author |
+| Storage | Specs stored in Postgres with versions and an audit log instead of files on disk | Survives restarts, supports multiple API replicas, and answers "who changed what, when" |
+| Spec evolution | A `spec_version` field with migrations; more task types (sensors, SQL, notifications); failure alerts and SLAs in the spec | The spec can grow without breaking existing workflows |
+| Policy checks | Allowed image registries only, per-team memory/CPU quotas, required owner and tags, enforced in the validator | Platform rules applied before anything reaches the cluster |
+| Developer experience | Publish the spec as JSON Schema (editor autocomplete), a preview of the generated DAG, and a CLI that validates locally | Errors are caught at the keyboard, not after submitting |
+| Observability | Structured JSON logs, metrics, remote task logs in S3/CloudWatch, alarms on failed or late runs, run history and logs in the UI | Teams can debug their own failures without asking the platform team |
+| Security | Image scanning as a deploy gate, Airflow's Secrets Manager backend, IRSA/Pod Identity, NetworkPolicies, Pod Security Standards | No long-lived keys, and task pods can only reach what they need |
+| Reliability | RDS Multi-AZ, multiple schedulers, PodDisruptionBudgets, namespace resource quotas | No single point of failure; one team's workload can't starve another's |
+| Testing | Integration tests against a real Airflow in CI, end-to-end UI tests, and a load test for many DAGs | Confidence that the whole path works, not just each unit |
+
 ## Tests and CI
 
 `pytest` covers the validator (including cycle edge cases like self-dependencies and the diamond shape), the
