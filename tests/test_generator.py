@@ -87,6 +87,7 @@ def test_local_target_uses_bash_operator(tmp_path, spec):
     task = dag.get_task("extract")
     assert type(task).__name__ == "BashOperator"
     assert task.bash_command == "cd /opt/airflow/tasks && python extract.py"
+    assert task.env == {"RUN_DATE": "{{ ds }}"} and task.append_env is True
 
 
 def test_kubernetes_target_sets_image_and_memory(tmp_path, spec):
@@ -95,6 +96,7 @@ def test_kubernetes_target_sets_image_and_memory(tmp_path, spec):
     assert type(task).__name__ == "KubernetesPodOperator"
     assert task.image == "mwp-tasks:0.1.0"
     assert task.cmds == ["python"] and task.arguments == ["extract.py"]
+    assert [(e.name, e.value) for e in task.env_vars] == [("RUN_DATE", "{{ ds }}")]
     assert task.container_resources.limits == {"memory": "512Mi"}
     assert task.container_resources.requests == {"memory": "512Mi"}
     assert dag.get_task("transform").container_resources.limits == {"memory": "256Mi"}  # default

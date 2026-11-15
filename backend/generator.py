@@ -18,6 +18,7 @@ import shlex
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import ClassVar
 
 from backend.spec_models import TaskSpec, WorkflowSpec
 from backend.validator import validate_yaml
@@ -40,6 +41,10 @@ class TaskRenderer(ABC):
     """
 
     target: str  # name used on the CLI / API, e.g. "local"
+
+    # Every task gets the run's logical date. Airflow renders "{{ ds }}" (a Jinja template) to e.g.
+    # "2026-11-13" at run time, so a re-run of the same date overwrites the same output (idempotent).
+    RUN_ENV: ClassVar[dict[str, str]] = {"RUN_DATE": "{{ ds }}"}
 
     @property
     @abstractmethod
@@ -78,7 +83,11 @@ class LocalTaskRenderer(TaskRenderer):
     def operator_kwargs(self, task: TaskSpec, spec: WorkflowSpec) -> dict[str, str]:
         # shlex.join quotes each argument for the shell, so a spec can't smuggle in `; rm -rf /`.
         bash_command = f"cd {shlex.quote(self.tasks_dir)} && {shlex.join(task.command)}"
-        return {"bash_command": py(bash_command)}
+        return {
+            "bash_command": py(bash_command),
+            "env": py(self.RUN_ENV),
+            "append_env": "True",  # keep the worker's own env (PATH, AWS settings) and add ours
+        }
 
 
 class KubernetesTaskRenderer(TaskRenderer):
@@ -109,6 +118,7 @@ class KubernetesTaskRenderer(TaskRenderer):
             "image_pull_policy": py("IfNotPresent"),
             "cmds": py(task.command[:1]),
             "arguments": py(task.command[1:]),
+            "env_vars": py(self.RUN_ENV),
             # requests = what the scheduler reserves; limits = the hard cap (exceed it -> OOMKilled).
             "container_resources": f"k8s.V1ResourceRequirements(requests={memory}, limits={memory})",
             "get_logs": "True",

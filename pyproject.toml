@@ -11,3 +11,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+
+[tool.ruff.lint.isort]
+# Task scripts import their sibling module `common` (they run from inside tasks/).
+known-first-party = ["backend", "common"]

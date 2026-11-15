@@ -1,0 +1,134 @@
+# Local Airflow 3.3.2 for development. Trimmed from the official docker-compose.yaml:
+#   - LocalExecutor instead of CeleryExecutor: tasks run as subprocesses of the scheduler,
+#     so no Redis, no Celery worker, no Flower (saves ~1.5 GB of RAM)
+#   - no triggerer (only needed for "deferrable" operators, which we don't use)
+#   - mounts our dags/, tasks/ and data/ folders
+# NOT for production: default passwords, no TLS, one Postgres container.
+#
+# From the repo root:
+#   docker compose -f deploy/docker-compose.yaml up -d      # start (first run takes a few minutes)
+#   open http://localhost:8080                              # login airflow / airflow
+#   docker compose -f deploy/docker-compose.yaml ps         # health of each service
+#   docker compose -f deploy/docker-compose.yaml down       # stop (keeps the database)
+#   docker compose -f deploy/docker-compose.yaml down -v    # stop and wipe the database
+
+name: mwp
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:3.3.2-python3.12
+  env_file:
+    - path: ../.env          # AWS settings for M5; optional so Airflow starts without it
+      required: false
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # Airflow 3: tasks talk to the API server (not straight to the database) through this "Execution API".
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: local-dev-only-not-a-real-secret
+    AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    # Look for new/changed DAG files every 30s instead of every 5 minutes.
+    AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"
+    MWP_DATA_DIR: /opt/airflow/data
+  volumes:
+    - ../dags:/opt/airflow/dags       # generated DAG files
+    - ../tasks:/opt/airflow/tasks     # task scripts that BashOperator runs
+    - ../data:/opt/airflow/data       # task output (local stand-in for S3)
+    - ./logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  # Airflow's metadata database: DAG runs, task states, users, connections.
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # One-off setup: create/upgrade the DB schema, create the admin user, fix folder ownership.
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,dags,data}
+        /entrypoint airflow version
+        chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow/{logs,data}
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: airflow
+      _AIRFLOW_WWW_USER_PASSWORD: airflow
+    user: "0:0"
+
+  # Airflow 3's "API server" replaces Airflow 2's "webserver": serves the UI, the REST API, and the
+  # Execution API that running tasks report to.
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Decides what should run when, and (with LocalExecutor) runs the tasks.
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Airflow 3 split this out of the scheduler: parses DAG files and stores them in the database.
+  # Import errors you see in the UI come from here.
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db-volume:

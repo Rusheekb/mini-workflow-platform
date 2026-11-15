@@ -25,6 +25,7 @@ airflow.cfg
 standalone_admin_password.txt
 deploy/logs/
 deploy/plugins/
+data/
 
 # --- Frontend ---
 node_modules/

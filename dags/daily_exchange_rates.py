@@ -21,16 +21,22 @@ with DAG(
     extract = BashOperator(
         task_id='extract',
         bash_command='cd /opt/airflow/tasks && python extract.py',
+        env={'RUN_DATE': '{{ ds }}'},
+        append_env=True,
     )
 
     transform = BashOperator(
         task_id='transform',
         bash_command='cd /opt/airflow/tasks && python transform.py',
+        env={'RUN_DATE': '{{ ds }}'},
+        append_env=True,
     )
 
     load = BashOperator(
         task_id='load',
         bash_command='cd /opt/airflow/tasks && python load.py',
+        env={'RUN_DATE': '{{ ds }}'},
+        append_env=True,
     )
 
     extract >> transform
